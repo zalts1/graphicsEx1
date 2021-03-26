@@ -155,8 +155,54 @@ public class ImageProcessor extends FunctioalForEachLoops {
 	}
 
 	public BufferedImage bilinear() {
-		//TODO: Implement this method, remove the exception.
-		throw new UnimplementedMethodException("bilinear");
+		this.logger.log("applies bilinear interpolation.");
+
+		BufferedImage ans = this.newEmptyOutputSizedImage();
+		this.pushForEachParameters();
+		this.setForEachOutputParameters();
+
+		this.forEach((y, x) -> {
+			final float imgX = x * this.inWidth / (float)this.outWidth;
+			final float imgY = y * this.inHeight / (float)this.outHeight;
+			int x2 = (int)imgX;
+			int y2 = (int)imgY;
+			int x3 = Math.min(x2 + 1, this.inWidth - 1);
+			int y3 = Math.min(y2 + 1, this.inHeight - 1);
+			float dx = x3 - imgX;
+			float dy = y3 - imgY;
+			Color c1 = linearX(this.workingImage, y2, x2, x3, dx);
+			Color c2 = linearX(this.workingImage, y3, x2, x3, dx);
+			Color c3 = weightedMean(c1, c2, dy);
+			ans.setRGB(x, y, c3.getRGB());
+			return;
+		});
+
+		this.popForEachParameters();
+		return ans;
+	}
+
+	private static Color linearX(final BufferedImage img, final int y, final int x0, final int x1, final float dx) {
+		final Color c1 = new Color(img.getRGB(x0, y));
+		final Color c2 = new Color(img.getRGB(x1, y));
+		return weightedMean(c1, c2, dx);
+	}
+
+	private static Color weightedMean(final Color c1, final Color c2, final float delta) {
+		final float r1 = (float)c1.getRed();
+		final float g1 = (float)c1.getGreen();
+		final float b1 = (float)c1.getBlue();
+		final float r2 = (float)c2.getRed();
+		final float g2 = (float)c2.getGreen();
+		final float b2 = (float)c2.getBlue();
+		final int r3 = weightedMean(r1, r2, delta);
+		final int g3 = weightedMean(g1, g2, delta);
+		final int b3 = weightedMean(b1, b2, delta);
+		return new Color(r3, g3, b3);
+	}
+
+	private static int weightedMean(final float c1, final float c2, final float delta) {
+		final int ans = (int)(c1 * delta + (1.0f - delta) * c2);
+		return Math.min(Math.max(ans, 0), 255);
 	}
 	
 	//MARK: Utilities
