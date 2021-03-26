@@ -87,13 +87,71 @@ public class ImageProcessor extends FunctioalForEachLoops {
 	
 	//MARK: Unimplemented methods
 	public BufferedImage greyscale() {
-		//TODO: Implement this method, remove the exception.
-		throw new UnimplementedMethodException("greyscale");
+		logger.log("Preparing for grey scale...");
+
+		int r = rgbWeights.redWeight;
+		int g = rgbWeights.greenWeight;
+		int b = rgbWeights.blueWeight;
+		int weightsSum = rgbWeights.weightsSum;
+
+		BufferedImage ans = newEmptyInputSizedImage();
+
+		forEach((y, x) -> {
+			Color c = new Color(workingImage.getRGB(x, y));
+			int greyscale = ((r * c.getRed()) + ( g * c.getGreen()) + (b * c.getBlue())) / weightsSum;
+			Color color = new Color(greyscale, greyscale, greyscale);
+			ans.setRGB(x, y, color.getRGB());
+		});
+
+		logger.log("grey scaling done!");
+
+		return ans;
 	}
 
 	public BufferedImage gradientMagnitude() {
-		//TODO: Implement this method, remove the exception.
-		throw new UnimplementedMethodException("gradientMagnitude");
+		this.logger.log("calculates the gradient magnitude.");
+		if (this.inHeight < 2 || this.inWidth < 2) {
+			throw new RuntimeException("Image is too small for calculating gradient magnitude.");
+		}
+
+		BufferedImage greyScaled = this.greyscale();
+		BufferedImage ans = this.newEmptyInputSizedImage();
+		this.forEach((y, x) -> {
+			final int rgb = computeMagnitude(greyScaled, x, y);
+			ans.setRGB(x, y, rgb);
+			return;
+		});
+
+		logger.log("gradient magnitude done!");
+
+		return ans;
+	}
+
+
+	private static int computeMagnitude(BufferedImage greyScaled, int currentX, int currentY) {
+		int prevPixelX = -1;
+		int prevPixelY = -1;
+
+		if(currentX == 0){
+			prevPixelX = 0;
+		}
+
+		if(currentY == 0){
+			prevPixelY = 0;
+		}
+
+		int prevX = currentX + prevPixelX;
+		int currentXColor = new Color(greyScaled.getRGB(currentX, currentY)).getBlue();
+		int prevXcolor = new Color(greyScaled.getRGB(prevX, currentY)).getBlue();
+		int diffColorX = currentXColor - prevXcolor;
+
+		int prevY = currentY + prevPixelY;
+		int currentYColor = new Color(greyScaled.getRGB(currentX, currentY)).getBlue();
+		int prevYcolor = new Color(greyScaled.getRGB(currentX, prevY)).getBlue();
+		int diffColorY = currentYColor - prevYcolor;
+
+		int magnitude = Math.min((int)Math.sqrt(Math.pow(diffColorX, 2) + Math.pow(diffColorY, 2)), 255);
+		return new Color(magnitude, magnitude, magnitude).getRGB();
 	}
 
 	public BufferedImage bilinear() {
