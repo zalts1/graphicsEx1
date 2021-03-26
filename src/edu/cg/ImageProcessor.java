@@ -164,15 +164,24 @@ public class ImageProcessor extends FunctioalForEachLoops {
 		this.forEach((y, x) -> {
 			final float imgX = x * this.inWidth / (float)this.outWidth;
 			final float imgY = y * this.inHeight / (float)this.outHeight;
-			int x2 = (int)imgX;
-			int y2 = (int)imgY;
-			int x3 = Math.min(x2 + 1, this.inWidth - 1);
-			int y3 = Math.min(y2 + 1, this.inHeight - 1);
-			float dx = x3 - imgX;
-			float dy = y3 - imgY;
-			Color c1 = linearX(this.workingImage, y2, x2, x3, dx);
-			Color c2 = linearX(this.workingImage, y3, x2, x3, dx);
-			Color c3 = weightedMean(c1, c2, dy);
+
+			int currentX = (int)imgX;
+			int nextX = Math.min(currentX + 1, this.inWidth - 1);
+
+			int currentY = (int)imgY;
+			int nextY = Math.min(currentY + 1, this.inHeight - 1);
+
+			// this is what i tried according to the lecture summary that for some reason works worse
+			// float t = (imgX - currentX) / (float)(nextX - currentX);
+			// float s = Math.abs((imgY - nextY) / (float)(nextY - currentY));
+
+			//this is the original
+			float diffX = nextX - imgX;
+			float diffY = nextY - imgY;
+
+			Color c1 = linearX(this.workingImage, currentY, currentX, nextX, diffX);
+			Color c2 = linearX(this.workingImage, nextY, currentX, nextX, diffX);
+			Color c3 = weightedMean(c1, c2, diffY);
 			ans.setRGB(x, y, c3.getRGB());
 			return;
 		});
@@ -181,9 +190,9 @@ public class ImageProcessor extends FunctioalForEachLoops {
 		return ans;
 	}
 
-	private static Color linearX(final BufferedImage img, final int y, final int x0, final int x1, final float dx) {
-		final Color c1 = new Color(img.getRGB(x0, y));
-		final Color c2 = new Color(img.getRGB(x1, y));
+	private static Color linearX(final BufferedImage img, final int y, final int currentX, final int nextX, final float dx) {
+		final Color c1 = new Color(img.getRGB(currentX, y));
+		final Color c2 = new Color(img.getRGB(nextX, y));
 		return weightedMean(c1, c2, dx);
 	}
 
