@@ -1,5 +1,5 @@
 package edu.cg;
-
+//// stavital
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 
