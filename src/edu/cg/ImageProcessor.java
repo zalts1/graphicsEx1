@@ -1,5 +1,6 @@
 package edu.cg;
 //// stavital
+// nadav zaltsman
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 
