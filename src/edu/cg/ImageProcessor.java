@@ -166,23 +166,21 @@ public class ImageProcessor extends FunctioalForEachLoops {
 			final float imgY = y * this.inHeight / (float)this.outHeight;
 
 			int currentX = (int)imgX;
-			int nextX = Math.min(currentX + 1, this.inWidth - 1);
+			int nextX = Math.min(currentX + 1, this.inWidth - 2);
 
 			int currentY = (int)imgY;
-			int nextY = Math.min(currentY + 1, this.inHeight - 1);
+			int nextY = Math.min(currentY + 1, this.inHeight - 2);
 
-			// this is what i tried according to the lecture summary that for some reason works worse
-			// float t = (imgX - currentX) / (float)(nextX - currentX);
-			// float s = Math.abs((imgY - nextY) / (float)(nextY - currentY));
+			Color c1 = new Color(workingImage.getRGB(currentX, currentY));
+			Color c2 = new Color(workingImage.getRGB(nextX, currentY));
+			Color c3 = new Color(workingImage.getRGB(currentX, nextY));
+			Color c4 = new Color(workingImage.getRGB(nextX, nextY));
 
-			//this is the original
-			float diffX = nextX - imgX;
-			float diffY = nextY - imgY;
+			Color c12 = linearInterpolation(c1, c2, nextX - imgX);
+			Color c34 = linearInterpolation(c3, c4, nextX - imgX);
+			Color c1234 = linearInterpolation(c12, c34, nextY - imgY);
 
-			Color c1 = linearX(this.workingImage, currentY, currentX, nextX, diffX);
-			Color c2 = linearX(this.workingImage, nextY, currentX, nextX, diffX);
-			Color c3 = weightedMean(c1, c2, diffY);
-			ans.setRGB(x, y, c3.getRGB());
+			ans.setRGB(x, y, c1234.getRGB());
 			return;
 		});
 
@@ -190,23 +188,11 @@ public class ImageProcessor extends FunctioalForEachLoops {
 		return ans;
 	}
 
-	private static Color linearX(final BufferedImage img, final int y, final int currentX, final int nextX, final float dx) {
-		final Color c1 = new Color(img.getRGB(currentX, y));
-		final Color c2 = new Color(img.getRGB(nextX, y));
-		return weightedMean(c1, c2, dx);
-	}
-
-	private static Color weightedMean(final Color c1, final Color c2, final float delta) {
-		final float r1 = (float)c1.getRed();
-		final float g1 = (float)c1.getGreen();
-		final float b1 = (float)c1.getBlue();
-		final float r2 = (float)c2.getRed();
-		final float g2 = (float)c2.getGreen();
-		final float b2 = (float)c2.getBlue();
-		final int r3 = weightedMean(r1, r2, delta);
-		final int g3 = weightedMean(g1, g2, delta);
-		final int b3 = weightedMean(b1, b2, delta);
-		return new Color(r3, g3, b3);
+	private Color linearInterpolation(Color c1, Color c2, float diff) {
+		final float r12 = (1 - diff) * (float) c1.getRed() + diff * (float)c2.getRed();
+		final float g12 = (1 - diff) * (float)c1.getGreen() + diff * (float)c2.getGreen();
+		final float b12 = (1 - diff) * (float)c1.getBlue() + diff * (float)c2.getBlue();
+		return new Color(r12, g12, b12);
 	}
 
 	private static int weightedMean(final float c1, final float c2, final float delta) {
