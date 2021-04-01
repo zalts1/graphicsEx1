@@ -62,6 +62,7 @@ public class BasicSeamsCarver extends ImageProcessor {
 				// from the image.
 				// Then, generate a new image from the input image in which you mark all of the horizontal seams that
 				// were chosen in the Seam Carving process.
+
 		throw new UnimplementedMethodException("showSeams");
 	}
 }
