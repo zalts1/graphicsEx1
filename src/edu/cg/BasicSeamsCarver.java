@@ -76,6 +76,8 @@ public class BasicSeamsCarver extends ImageProcessor {
         forEach((y, x) -> {
             calcMinimalCostPixel(y, x);
         });
+        // TODO: add function for finding minimal seam
+        // TODO: remove minimal seam
     }
 
     private void calcMinimalCostPixel(int y, int x) {
