@@ -32,12 +32,48 @@ public class BasicSeamsCarver extends ImageProcessor {
 	}
 	
 	// TODO :  Decide on the fields your BasicSeamsCarver should include. Refer to the recitation and homework 
-			// instructions PDF to make an educated decision.
+	private Coordinate[][] coordinates;
+	private BufferedImage grayScaledImage;
+	private double[][] energyMatrix;
+	private int[][] grayScaled;
 	
 	public BasicSeamsCarver(Logger logger, BufferedImage workingImage,
 			int outWidth, int outHeight, RGBWeights rgbWeights) {
 		super((s) -> logger.log("Seam carving: " + s), workingImage, rgbWeights, outWidth, outHeight);
-		// TODO : Include some additional initialization procedures.
+		coordinates = new Coordinate[inHeight][inWidth];
+
+		forEach((y, x) -> coordinates[y][x] = new Coordinate(x, y));
+		grayScaled = new int[inHeight][inWidth];
+		setForEachParameters(inWidth, inHeight);
+		grayScaledImage = greyscale();
+
+		forEach((y, x) -> {
+			coordinates[y][x] = new Coordinate(x,y);
+		});
+
+		forEach((y, x) -> {
+			energyMatrix[y][x] = calcEnergyMatrix(x, y);
+		});
+
+	}
+
+	private double calcEnergyMatrix(int x, int y) {
+		double horizontalEnergy = 0;
+		double verticalEnergy = 0;
+		if(x == inWidth - 1){
+			horizontalEnergy = Math.abs(grayScaled[y][x] - grayScaled[y][x - 1]);
+		}else{
+			horizontalEnergy = Math.abs(grayScaled[y][x] - grayScaled[y][x + 1]);
+		}
+
+		if(y == inHeight -1){
+			verticalEnergy = Math.abs(grayScaled[y][x] - grayScaled[y - 1][x]);
+		}else{
+			Math.abs(grayScaled[y][x] - grayScaled[y + 1][x]);
+		}
+
+		double ans = Math.sqrt(Math.pow(horizontalEnergy, 2) + Math.pow(verticalEnergy, 2));
+		return ans;
 	}
 	
 	public BufferedImage carveImage(CarvingScheme carvingScheme) {

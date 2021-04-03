@@ -1,6 +1,5 @@
 package edu.cg;
-//// stavital
-// nadav zaltsman
+
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 
@@ -162,27 +161,27 @@ public class ImageProcessor extends FunctioalForEachLoops {
 		this.setForEachOutputParameters();
 
 		this.forEach((y, x) -> {
-			double imgX = x * (this.inWidth - 1) / (float)this.outWidth;
-			double imgY = y * (this.inHeight - 1) / (float)this.outHeight;
+			float imgX = x * (this.inWidth) / (float)this.outWidth;
+			float imgY = y * (this.inHeight) / (float)this.outHeight;
 
 			int currentX = (int)imgX;
-			int nextX = Math.min(currentX, this.inWidth - 1);
+			int nextX = Math.min(currentX + 1, this.inWidth - 2);
 
 			int currentY = (int)imgY;
-			int nextY = Math.min(currentY, this.inHeight - 1);
+			int nextY = Math.min(currentY + 1, this.inHeight - 2);
 
-			double diffX = nextX - imgX;
-			double diffY = nextY - imgY;
+			float diffX = nextX - imgX;
+			float diffY = nextY - imgY;
 
-			int c1 = workingImage.getRGB((int)imgX, (int)imgY);
-			int c2 = workingImage.getRGB((int)imgX + 1, (int)imgY);
-			int c3 = workingImage.getRGB((int)imgX, (int)imgY + 1);
-			int c4 = workingImage.getRGB((int)imgX + 1 , (int)imgY + 1);
+			Color c1 = new Color(workingImage.getRGB(currentX, currentY));
+			Color c2 = new Color(workingImage.getRGB(nextX, currentY));
+			Color c3 = new Color(workingImage.getRGB(currentX, nextY));
+			Color c4 = new Color(workingImage.getRGB(nextX , nextY));
 
-			int c12 = getColor(c1, c2, diffX);
-			int c34 = getColor(c3, c4, diffX);
-			int cFinal = getColor(c12, c34, diffY);
-			ans.setRGB(x, y, cFinal);
+			Color c12 = linearInterpolation(c1, c2, diffX);
+			Color c34 = linearInterpolation(c3, c4, diffX);
+			Color cFinal = linearInterpolation(c12, c34, diffY);
+			ans.setRGB(x, y, cFinal.getRGB());
 			return;
 		});
 
@@ -190,25 +189,13 @@ public class ImageProcessor extends FunctioalForEachLoops {
 		return ans;
 	}
 
-	private int getColor(int c1, int c2, double diff) {
-		int r1 = (c1>>16)&0xFF;
-		int g1 = (c1>>8)&0xFF;
-		int b1 = (c1>>0)&0xFF;
-		int r2 = (c2>>16)&0xFF;
-		int g2 = (c2>>8)&0xFF;
-		int b2 = (c2>>0)&0xFF;
-
-		int r12 = calc(r1, r2, diff);
-		int g12 = calc(g1, g2, diff);
-		int b12 = calc(b1, b2, diff);
-		return (r12<<16 | g12<<8 | b12);
+	private Color linearInterpolation(Color c1, Color c2, float diff) {
+		float r12 = (1 - diff) * (float) c1.getRed() + diff * (float)c2.getRed();
+		float g12 = (1 - diff) * (float)c1.getGreen() + diff * (float)c2.getGreen();
+		float b12 = (1 - diff) * (float)c1.getBlue() + diff * (float)c2.getBlue();
+		return new Color(r12, g12, b12);
 	}
 
-	private int calc(int c1, int c2, double diff) {
-		int ans = (int)(((1 - diff) * c1) + (diff * c2));
-		return Math.min(Math.max(ans, 0), 255);
-	}
-	
 	//MARK: Utilities
 	public final void setForEachInputParameters() {
 		setForEachParameters(inWidth, inHeight);
