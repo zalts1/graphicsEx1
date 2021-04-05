@@ -52,6 +52,9 @@ public class BasicSeamsCarver extends ImageProcessor {
     private int currHeight;
     private int currWidth;
     private Mode currentMode;
+    private Coordinate[] seamCoors;
+    private int[] seamIndexes;
+    private int[][] minTable;
 
 
     public BasicSeamsCarver(Logger logger, BufferedImage workingImage,
@@ -64,6 +67,8 @@ public class BasicSeamsCarver extends ImageProcessor {
         grayScaledMatrix = new int[currHeight][currWidth];
         setForEachParameters(currWidth, currHeight);
         BufferedImage grayScaledImage = greyscale();
+        this.dynamicPTable = new double[currHeight][currWidth];
+        this.minTable = new int[currHeight][currWidth];
 
         forEach((y, x) -> {
             coordinates[y][x] = new Coordinate(x, y);
@@ -76,8 +81,15 @@ public class BasicSeamsCarver extends ImageProcessor {
         forEach((y, x) -> {
             calcMinimalCostPixel(y, x);
         });
+        this.seamCoors = new Coordinate[currHeight];
+        this.seamIndexes = new int[currHeight];
+        findSeam();
         // TODO: add function for finding minimal seam
         // TODO: remove minimal seam
+    }
+
+    private void findSeam() {
+
     }
 
     private void calcMinimalCostPixel(int y, int x) {
@@ -104,15 +116,18 @@ public class BasicSeamsCarver extends ImageProcessor {
         double mu;
         double mh;
         double md;
+        int minIndex = y;
 
         if (y == 0) {
             mu = 255;
             mh = dynamicPTable[y][x - 1];
             md = Math.abs(this.grayScaledMatrix[y + 1][x] - this.grayScaledMatrix[y][x - 1]) + dynamicPTable[y + 1][x - 1];
+            minIndex = md < mh ? y + 1 : minIndex;
         } else if (y == currHeight - 1) {
             md = 255;
             mh = dynamicPTable[y][x - 1];
             mu = Math.abs(this.grayScaledMatrix[y - 1][x] - this.grayScaledMatrix[y][x - 1]) + dynamicPTable[y - 1][x - 1];
+            minIndex = mu < mh ? y - 1 : minIndex
         } else {
             md = Math.abs(this.grayScaledMatrix[y + 1][x] - this.grayScaledMatrix[y][x - 1])
                     + Math.abs(grayScaledMatrix[y - 1][x] - grayScaledMatrix[y + 1][x])
@@ -121,8 +136,10 @@ public class BasicSeamsCarver extends ImageProcessor {
                     + Math.abs(grayScaledMatrix[y - 1][x] - grayScaledMatrix[y + 1][x])
                     + dynamicPTable[y - 1][x - 1];
             mh = Math.abs(this.grayScaledMatrix[y - 1][x] - this.grayScaledMatrix[y + 1][x]) + dynamicPTable[y][x - 1];
+            minIndex = md < mh ? y - 1 : minIndex;
+            minIndex = mu < minIndex ? y + 1 : minIndex;
         }
-
+        this.minTable[x][y] = minIndex;
         return Math.min(mh, Math.min(mu, md));
     }
 
@@ -142,15 +159,18 @@ public class BasicSeamsCarver extends ImageProcessor {
         double ml;
         double mv;
         double mr;
+        int minIndex = x;
 
         if (x == 0) {
             ml = 255;
             mv = dynamicPTable[y - 1][x];
             mr = Math.abs(this.grayScaledMatrix[y][x + 1] - this.grayScaledMatrix[y - 1][x]) + dynamicPTable[y - 1][x + 1];
+            minIndex = mr < mv ? x + 1 : minIndex;
         } else if (x == currWidth - 1) {
             mr = 255;
             mv = dynamicPTable[y - 1][x];
             ml = Math.abs(this.grayScaledMatrix[y - 1][x] - this.grayScaledMatrix[y][x - 1]) + dynamicPTable[y - 1][x - 1];
+            minIndex = ml < mv ? x - 1 : minIndex;
         } else {
             mr = Math.abs(this.grayScaledMatrix[y][x + 1] - this.grayScaledMatrix[y][x - 1])
                     + Math.abs(grayScaledMatrix[y][x + 1] - grayScaledMatrix[y - 1][x])
@@ -159,8 +179,11 @@ public class BasicSeamsCarver extends ImageProcessor {
                     + Math.abs(grayScaledMatrix[y - 1][x] - grayScaledMatrix[y][x - 1])
                     + dynamicPTable[y - 1][x - 1];
             mv = Math.abs(this.grayScaledMatrix[y][x + 1] - this.grayScaledMatrix[y][x - 1]) + dynamicPTable[y - 1][x];
+            minIndex = mr < minIndex ? x + 1 : minIndex;
+            minIndex = ml < minIndex ? x - 1 : minIndex;
         }
 
+        this.minTable[x][y] = minIndex;
         return Math.min(mv, Math.min(ml, mr));
     }
 
