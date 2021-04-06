@@ -52,6 +52,7 @@ public class BasicSeamsCarver extends ImageProcessor {
     private double[][] energyMatrix;
     private int[][] grayScaledMatrix;
     private int[][] pathMatrix;
+    private int[][] duplicatedMatrix;
     private int currHeight;
     private int currWidth;
     private Mode currentMode;
@@ -73,6 +74,7 @@ public class BasicSeamsCarver extends ImageProcessor {
         grayScaledMatrix = new int[currHeight][currWidth];
         pathMatrix = new int[currHeight][currWidth];
         energyMatrix = new double[currHeight][currWidth];
+        duplicatedMatrix = new int[currHeight][currWidth];
         verticalSeams = new ArrayList<>();
         horizontalSeams = new ArrayList<>();
         result = duplicateWorkingImage();
@@ -80,7 +82,7 @@ public class BasicSeamsCarver extends ImageProcessor {
         setForEachInputParameters();
         BufferedImage grayScaledImage = greyscale();
 
-        for(int y = 0; y < currHeight; y++) {
+        for (int y = 0; y < currHeight; y++) {
             for (int x = 0; x < currWidth; x++) {
                 grayScaledMatrix[y][x] = (new Color(grayScaledImage.getRGB(x, y))).getRed();
             }
@@ -88,17 +90,21 @@ public class BasicSeamsCarver extends ImageProcessor {
 
         this.dynamicPTable = new double[currHeight][currWidth];
 
-        for(int y = 0; y < currHeight; y++) {
+        initCoordinates();
+
+    }
+
+    private void initCoordinates() {
+        for (int y = 0; y < currHeight; y++) {
             for (int x = 0; x < currWidth; x++) {
                 coordinates[y][x] = new Coordinate(x, y);
             }
         }
-
     }
 
     private void carveSeam() {
         initDynamicPTableWithEnergyPixels();
-        for(int y = 0; y < currHeight; y++) {
+        for (int y = 0; y < currHeight; y++) {
             for (int x = 0; x < currWidth; x++) {
                 calcMinimalCostPixel(y, x);
             }
@@ -108,28 +114,28 @@ public class BasicSeamsCarver extends ImageProcessor {
 
     private Coordinate[] findVerticalSeam() {
         Coordinate[] seamToRemove = new Coordinate[currHeight];
-        Coordinate minCoor = new Coordinate(-1,-1);
+        Coordinate minCoor = new Coordinate(-1, -1);
         float minValue = Float.MAX_VALUE;
 
-        for(int x = 0; x < currWidth; x++){
-            if(dynamicPTable[currHeight-1][x] < minValue){
-                minValue = (float) dynamicPTable[currHeight-1][x];
+        for (int x = 0; x < currWidth; x++) {
+            if (dynamicPTable[currHeight - 1][x] < minValue) {
+                minValue = (float) dynamicPTable[currHeight - 1][x];
                 minCoor.X = x;
-                minCoor.Y = currHeight-1;
+                minCoor.Y = currHeight - 1;
             }
         }
 
-        seamToRemove[currHeight-1] = minCoor;
+        seamToRemove[currHeight - 1] = minCoor;
         int currCol = minCoor.X;
 
-        for(int y = currHeight - 1; y > 0; y--){
-            if(pathMatrix[y][currCol] == 0){
-               seamToRemove[y-1] = new Coordinate(currCol, y-1);
-            } else if( pathMatrix[y][currCol] == 1 && currCol < currWidth-1){
-                seamToRemove[y-1] = new Coordinate(currCol+1, y-1);
+        for (int y = currHeight - 1; y > 0; y--) {
+            if (pathMatrix[y][currCol] == 0) {
+                seamToRemove[y - 1] = new Coordinate(currCol, y - 1);
+            } else if (pathMatrix[y][currCol] == 1 && currCol < currWidth - 1) {
+                seamToRemove[y - 1] = new Coordinate(currCol + 1, y - 1);
                 currCol++;
-            }else if(pathMatrix[y][currCol] == -1 && currCol > 0){
-                seamToRemove[y-1] = new Coordinate(currCol-1, y-1);
+            } else if (pathMatrix[y][currCol] == -1 && currCol > 0) {
+                seamToRemove[y - 1] = new Coordinate(currCol - 1, y - 1);
                 currCol--;
             }
         }
@@ -138,29 +144,29 @@ public class BasicSeamsCarver extends ImageProcessor {
     }
 
     private Coordinate[] findHorizontalSeam() {
-        Coordinate[] seamToRemove = new Coordinate[currHeight];
-        Coordinate minCoor = new Coordinate(-1,-1);
+        Coordinate[] seamToRemove = new Coordinate[currWidth];
+        Coordinate minCoor = new Coordinate(-1, -1);
         float minValue = Float.MAX_VALUE;
 
-        for(int y = 0; y < currHeight; y++){
-            if(dynamicPTable[y][currWidth-1] < minValue){
-                minValue = (float) dynamicPTable[y][currWidth-1];
-                minCoor.X = currWidth-1;
+        for (int y = 0; y < currHeight; y++) {
+            if (dynamicPTable[y][currWidth - 1] < minValue) {
+                minValue = (float) dynamicPTable[y][currWidth - 1];
+                minCoor.X = currWidth - 1;
                 minCoor.Y = y;
             }
         }
 
-        seamToRemove[currWidth-1] = minCoor;
+        seamToRemove[currWidth - 1] = minCoor;
         int currRow = minCoor.Y;
 
-        for(int x = currWidth - 1; x > 0; x--){
-            if(pathMatrix[currRow][x] == 0){
-                seamToRemove[x-1] = new Coordinate(x-1, currRow);
-            } else if( pathMatrix[currRow][x] == 1 && currRow < currHeight-1){
-                seamToRemove[x-1] = new Coordinate(x-1, currRow+1);
+        for (int x = currWidth - 1; x > 0; x--) {
+            if (pathMatrix[currRow][x] == 0) {
+                seamToRemove[x - 1] = new Coordinate(x - 1, currRow);
+            } else if (pathMatrix[currRow][x] == 1 && currRow < currHeight - 1) {
+                seamToRemove[x - 1] = new Coordinate(x - 1, currRow + 1);
                 currRow++;
-            }else if(pathMatrix[currRow][x] == -1 && currRow > 0){
-                seamToRemove[x-1] = new Coordinate(x-1, currRow-1);
+            } else if (pathMatrix[currRow][x] == -1 && currRow > 0) {
+                seamToRemove[x - 1] = new Coordinate(x - 1, currRow - 1);
                 currRow--;
             }
         }
@@ -168,7 +174,7 @@ public class BasicSeamsCarver extends ImageProcessor {
         return seamToRemove;
     }
 
-    private double[] costVerticalEdge(int y, int x){
+    private double[] costVerticalEdge(int y, int x) {
         double cR, cL, cV;
 
         if (x == 0) {
@@ -186,11 +192,11 @@ public class BasicSeamsCarver extends ImageProcessor {
             cR = Math.abs(this.grayScaledMatrix[y][x + 1] - this.grayScaledMatrix[y][x - 1])
                     + Math.abs(grayScaledMatrix[y][x + 1] - grayScaledMatrix[y - 1][x]);
         }
-        double[] ans = {cL,cV,cR};
+        double[] ans = {cL, cV, cR};
         return ans;
     }
 
-    private double[] costHorizontalEdge(int x, int y){
+    private double[] costHorizontalEdge(int x, int y) {
         double cU, cH, cD;
 
         if (y == 0) {
@@ -205,11 +211,11 @@ public class BasicSeamsCarver extends ImageProcessor {
             cU = Math.abs(this.grayScaledMatrix[y - 1][x] - this.grayScaledMatrix[y][x - 1])
                     + Math.abs(grayScaledMatrix[y - 1][x] - grayScaledMatrix[y + 1][x]);
             cH = Math.abs(this.grayScaledMatrix[y - 1][x] - this.grayScaledMatrix[y + 1][x]);
-            cD =  Math.abs(this.grayScaledMatrix[y + 1][x] - this.grayScaledMatrix[y][x - 1])
+            cD = Math.abs(this.grayScaledMatrix[y + 1][x] - this.grayScaledMatrix[y][x - 1])
                     + Math.abs(grayScaledMatrix[y - 1][x] - grayScaledMatrix[y + 1][x]);
         }
 
-        double[] ans =  {cU,cH,cD};
+        double[] ans = {cU, cH, cD};
         return ans;
 
     }
@@ -227,7 +233,7 @@ public class BasicSeamsCarver extends ImageProcessor {
             if (y == 0 || y == this.currHeight - 1) {
                 return;
             } else {
-                this.dynamicPTable[y][x] += Math.abs(grayScaledMatrix[y - 1][x] - grayScaledMatrix[y + 1][x]);
+                this.dynamicPTable[y][x] += Math.abs(grayScaledMatrix[y - 1][0] - grayScaledMatrix[y + 1][0]);
             }
         } else {
             this.dynamicPTable[y][x] += calcHorizontalMinHorizontalValue(y, x);
@@ -244,12 +250,12 @@ public class BasicSeamsCarver extends ImageProcessor {
         double cd = Cudh[2];
 
         if (y == 0) {
-            mu = 255;
-            mh = ch + dynamicPTable[y][x - 1];
+            mu = Integer.MAX_VALUE;
+            mh = dynamicPTable[y][x - 1];
             md = cd + dynamicPTable[y + 1][x - 1];
         } else if (y == currHeight - 1) {
-            md = 255;
-            mh = ch + dynamicPTable[y][x - 1];
+            md = Integer.MAX_VALUE;
+            mh = dynamicPTable[y][x - 1];
             mu = cu + dynamicPTable[y - 1][x - 1];
         } else {
             md = cd + dynamicPTable[y + 1][x - 1];
@@ -259,15 +265,15 @@ public class BasicSeamsCarver extends ImageProcessor {
 
         double minValue = Math.min(mu, Math.min(md, mh));
 
-        if(minValue == mh){
+        if (minValue == mh) {
             pathMatrix[y][x] = 0;
         }
 
-        if(minValue == md){
+        if (minValue == md) {
             pathMatrix[y][x] = 1;
         }
 
-        if(minValue == mu){
+        if (minValue == mu) {
             pathMatrix[y][x] = -1;
         }
 
@@ -287,14 +293,11 @@ public class BasicSeamsCarver extends ImageProcessor {
     }
 
     private double calcVerticalMinVerticalValue(int y, int x) {
-        if(y == currHeight-1){
-            System.out.println("a");
-        }
 
         double ml;
         double mv;
         double mr;
-        double[] Cvlr = costVerticalEdge(y,x);
+        double[] Cvlr = costVerticalEdge(y, x);
         double cL = Cvlr[0];
         double cV = Cvlr[1];
         double cR = Cvlr[2];
@@ -315,15 +318,15 @@ public class BasicSeamsCarver extends ImageProcessor {
 
         double minValue = Math.min(mv, Math.min(ml, mr));
 
-        if(minValue == mv){
+        if (minValue == mv) {
             pathMatrix[y][x] = 0;
         }
 
-        if(minValue == mr){
+        if (minValue == mr) {
             pathMatrix[y][x] = 1;
         }
 
-        if(minValue == ml){
+        if (minValue == ml) {
             pathMatrix[y][x] = -1;
         }
 
@@ -332,15 +335,15 @@ public class BasicSeamsCarver extends ImageProcessor {
 
     private void initDynamicPTableWithEnergyPixels() {
         calcEnergyMatrix();
-        for(int y = 0; y < currHeight; y++){
-            for(int x = 0; x < currWidth; x++){
+        for (int y = 0; y < currHeight; y++) {
+            for (int x = 0; x < currWidth; x++) {
                 this.dynamicPTable[y][x] = energyMatrix[y][x];
             }
         }
     }
 
     private void calcEnergyMatrix() {
-        for(int y = 0; y < currHeight; y++) {
+        for (int y = 0; y < currHeight; y++) {
             for (int x = 0; x < currWidth; x++) {
                 double horizontalEnergy = 0;
                 double verticalEnergy = 0;
@@ -370,7 +373,7 @@ public class BasicSeamsCarver extends ImageProcessor {
         if (carvingScheme == CarvingScheme.VERTICAL_HORIZONTAL) {
             this.currentMode = Mode.VERTICAL;
             for (int i = 0; i < numberOfVerticalSeamsToCarve; i++) {
-                removeSingleVerticalSeam();;
+                removeSingleVerticalSeam();
             }
             this.currentMode = Mode.HORIZONTAL;
             for (int i = 0; i < numberOfHorizontalSeamsToCarve; i++) {
@@ -392,7 +395,7 @@ public class BasicSeamsCarver extends ImageProcessor {
         setForEachWidth(outWidth);
         setForEachHeight(outHeight);
 
-        for(int y = 0; y < currHeight; y++) {
+        for (int y = 0; y < currHeight; y++) {
             for (int x = 0; x < currWidth; x++) {
                 ans.setRGB(x, y, workingImage.getRGB(coordinates[y][x].X, coordinates[y][x].Y));
             }
@@ -419,26 +422,35 @@ public class BasicSeamsCarver extends ImageProcessor {
 
 
         BufferedImage currentImage = newEmptyInputSizedImage();
-        for(int y = 0; y < currHeight; y++) {
+        for (int y = 0; y < currHeight; y++) {
             for (int x = 0; x < currWidth; x++) {
                 currentImage.setRGB(x, y, workingImage.getRGB(x, y));
             }
         }
 
-        if(showVerticalSeams){
-            for(int i=0; i< numberOfVerticalSeamsToCarve; i++){
-                currentMode = Mode.VERTICAL;
+        if (showVerticalSeams) {
+            currentMode = Mode.VERTICAL;
+            for (int i = 0; i < numberOfVerticalSeamsToCarve; i++) {
                 carveSeam();
-                Coordinate[] ans = findVerticalSeam();
-                verticalSeams.add(ans);
-                compressIndexMatrixVertical(ans);
+                Coordinate[] seam = findVerticalSeam();
+                Coordinate[] newSeam = new Coordinate[seam.length];
+                for (int k = 0; k < seam.length; k++) {
+                    newSeam[k] = coordinates[seam[k].Y][seam[k].X];
+                }
+                verticalSeams.add(newSeam);
+                compressIndexMatrixVertical(seam);
             }
-        }else{
-            for(int i=0; i<numberOfHorizontalSeamsToCarve; i++){
+        } else {
+            currentMode = Mode.HORIZONTAL;
+            for (int i = 0; i < numberOfHorizontalSeamsToCarve; i++) {
                 carveSeam();
-                Coordinate[] ans = findHorizontalSeam();
-                horizontalSeams.add(ans);
-                compressIndexMatrixVertical(ans);
+                Coordinate[] seam = findHorizontalSeam();
+                Coordinate[] newSeam = new Coordinate[seam.length];
+                for (int k = 0; k < seam.length; k++) {
+                    newSeam[k] = coordinates[seam[k].Y][seam[k].X];
+                }
+                horizontalSeams.add(newSeam);
+                compressIndexMatrixHorizontal(seam);
             }
         }
 
@@ -449,14 +461,14 @@ public class BasicSeamsCarver extends ImageProcessor {
 
     private void removeSingleVerticalSeam() {
         carveSeam();
-        Coordinate[] ans = findVerticalSeam();
-        compressIndexMatrixVertical(ans);
+        Coordinate[] seam = findVerticalSeam();
+        compressIndexMatrixVertical(seam);
     }
 
     private void removeSingleHorizontalSeam() {
         carveSeam();
-        Coordinate[] ans = findVerticalSeam();
-        compressIndexMatrixHorizontal(ans);
+        Coordinate[] seam = findVerticalSeam();
+        compressIndexMatrixHorizontal(seam);
     }
 
     private void compressIndexMatrixHorizontal(Coordinate[] seam) {
@@ -466,6 +478,7 @@ public class BasicSeamsCarver extends ImageProcessor {
 
             for (int j = row; j < currHeight - 1; j++) {
                 coordinates[j][col] = coordinates[j + 1][col];
+                grayScaledMatrix[j][col]= grayScaledMatrix[j + 1][col];
             }
         }
 
@@ -480,23 +493,24 @@ public class BasicSeamsCarver extends ImageProcessor {
 
             for (int j = col; j < currWidth - 1; j++) {
                 coordinates[row][j] = coordinates[row][j + 1];
+                grayScaledMatrix[row][j] = grayScaledMatrix[row][j + 1];
             }
         }
 
         currWidth--;
     }
 
-    private void colorSeam(int seamColor, BufferedImage Image){
-        if(currentMode == Mode.VERTICAL){
-            for(Coordinate[] seam : verticalSeams) {
+    private void colorSeam(int seamColor, BufferedImage Image) {
+        if (currentMode == Mode.VERTICAL) {
+            for (Coordinate[] seam : verticalSeams) {
                 for (Coordinate coor : seam) {
-                    Image.setRGB(coordinates[coor.Y][coor.X].X, coordinates[coor.Y][coor.X].Y, seamColor);
+                    Image.setRGB(coor.X, coor.Y, seamColor);
                 }
             }
-        }else{
-            for(Coordinate[] seam : horizontalSeams) {
+        } else {
+            for (Coordinate[] seam : horizontalSeams) {
                 for (Coordinate coor : seam) {
-                    Image.setRGB(coordinates[coor.Y][coor.X].X, coordinates[coor.Y][coor.X].Y, seamColor);
+                    Image.setRGB(coor.X, coor.Y, seamColor);
                 }
             }
         }
