@@ -390,7 +390,7 @@ public class BasicSeamsCarver extends ImageProcessor {
                 removeSingleVerticalSeam();
             }
         } else {
-            carveIntermittently();
+            carveIntermittently(numberOfHorizontalSeamsToCarve, numberOfVerticalSeamsToCarve);
         }
         setForEachWidth(outWidth);
         setForEachHeight(outHeight);
@@ -404,7 +404,20 @@ public class BasicSeamsCarver extends ImageProcessor {
         return ans;
     }
 
-    private void carveIntermittently() {
+    private void carveIntermittently(int numberOfHorizontalSeamsToCarve, int numberOfVerticalSeamsToCarve) {
+        if (numberOfHorizontalSeamsToCarve + numberOfVerticalSeamsToCarve == 0) return;
+        currentMode = numberOfVerticalSeamsToCarve > numberOfHorizontalSeamsToCarve ? Mode.VERTICAL : Mode.HORIZONTAL;
+        while (numberOfHorizontalSeamsToCarve + numberOfVerticalSeamsToCarve > 0) {
+            if (currentMode == Mode.VERTICAL){
+                removeSingleVerticalSeam();
+                numberOfVerticalSeamsToCarve--;
+                currentMode = numberOfHorizontalSeamsToCarve > 0 ? Mode.HORIZONTAL : Mode.VERTICAL;
+            } else {
+                removeSingleHorizontalSeam();
+                numberOfHorizontalSeamsToCarve--;
+                currentMode = numberOfVerticalSeamsToCarve > 0 ? Mode.VERTICAL : Mode.HORIZONTAL;
+            }
+        }
     }
 
     public BufferedImage showSeams(boolean showVerticalSeams, int seamColorRGB) {
@@ -456,7 +469,6 @@ public class BasicSeamsCarver extends ImageProcessor {
 
         colorSeam(seamColorRGB, currentImage);
         return currentImage;
-
     }
 
     private void removeSingleVerticalSeam() {
