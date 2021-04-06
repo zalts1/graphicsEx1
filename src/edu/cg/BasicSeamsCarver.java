@@ -2,6 +2,8 @@ package edu.cg;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.nio.Buffer;
+import java.util.ArrayList;
 
 
 public class BasicSeamsCarver extends ImageProcessor {
@@ -53,6 +55,9 @@ public class BasicSeamsCarver extends ImageProcessor {
     private int currHeight;
     private int currWidth;
     private Mode currentMode;
+    private ArrayList<Coordinate[]> verticalSeams;
+    private ArrayList<Coordinate[]> horizontalSeams;
+    private BufferedImage result;
 
 
     public BasicSeamsCarver(Logger logger, BufferedImage workingImage,
@@ -67,37 +72,38 @@ public class BasicSeamsCarver extends ImageProcessor {
         coordinates = new Coordinate[currHeight][currWidth];
         grayScaledMatrix = new int[currHeight][currWidth];
         pathMatrix = new int[currHeight][currWidth];
-        grayScaledMatrix = initGrayMatrix();
+        energyMatrix = new double[currHeight][currWidth];
+        verticalSeams = new ArrayList<>();
+        horizontalSeams = new ArrayList<>();
+        result = duplicateWorkingImage();
 
         setForEachInputParameters();
         BufferedImage grayScaledImage = greyscale();
+
+        for(int y = 0; y < currHeight; y++) {
+            for (int x = 0; x < currWidth; x++) {
+                grayScaledMatrix[y][x] = (new Color(grayScaledImage.getRGB(x, y))).getRed();
+            }
+        }
+
         this.dynamicPTable = new double[currHeight][currWidth];
 
-        forEach((y, x) -> {
-            coordinates[y][x] = new Coordinate(x, y);
-        });
+        for(int y = 0; y < currHeight; y++) {
+            for (int x = 0; x < currWidth; x++) {
+                coordinates[y][x] = new Coordinate(x, y);
+            }
+        }
 
-    }
-
-    private int[][] initGrayMatrix(){
-        int[][] ans = new int[inHeight][inWidth];
-        forEach((y, x) -> {
-            Color c = new Color(workingImage.getRGB(x, y));
-            ans[y][x] = (c.getRed() + c.getGreen() + c.getBlue())/3;
-        });
-
-        return ans;
     }
 
     private void carveSeam() {
         initDynamicPTableWithEnergyPixels();
-        forEach((y, x) -> {
-            calcMinimalCostPixel(y, x);
-        });
+        for(int y = 0; y < currHeight; y++) {
+            for (int x = 0; x < currWidth; x++) {
+                calcMinimalCostPixel(y, x);
+            }
+        }
 
-
-        // TODO: add function for finding minimal seam
-        // TODO: remove minimal seam
     }
 
     private Coordinate[] findVerticalSeam() {
@@ -325,30 +331,35 @@ public class BasicSeamsCarver extends ImageProcessor {
     }
 
     private void initDynamicPTableWithEnergyPixels() {
-        this.dynamicPTable = calcEnergyMatrix();
+        calcEnergyMatrix();
+        for(int y = 0; y < currHeight; y++){
+            for(int x = 0; x < currWidth; x++){
+                this.dynamicPTable[y][x] = energyMatrix[y][x];
+            }
+        }
     }
 
-    private double[][] calcEnergyMatrix() {
-        double[][] energyMatrix = new double[currHeight][currWidth];
-        forEach((y,x)->{
-            double horizontalEnergy = 0;
-            double verticalEnergy = 0;
-            if (x == currWidth - 1) {
-                horizontalEnergy = Math.abs(grayScaledMatrix[y][x] - grayScaledMatrix[y][x - 1]);
-            } else {
-                horizontalEnergy = Math.abs(grayScaledMatrix[y][x] - grayScaledMatrix[y][x + 1]);
+    private void calcEnergyMatrix() {
+        for(int y = 0; y < currHeight; y++) {
+            for (int x = 0; x < currWidth; x++) {
+                double horizontalEnergy = 0;
+                double verticalEnergy = 0;
+                if (x == currWidth - 1) {
+                    horizontalEnergy = Math.abs(grayScaledMatrix[y][x] - grayScaledMatrix[y][x - 1]);
+                } else {
+                    horizontalEnergy = Math.abs(grayScaledMatrix[y][x] - grayScaledMatrix[y][x + 1]);
+                }
+
+                if (y == currHeight - 1) {
+                    verticalEnergy = Math.abs(grayScaledMatrix[y][x] - grayScaledMatrix[y - 1][x]);
+                } else {
+                    verticalEnergy = Math.abs(grayScaledMatrix[y][x] - grayScaledMatrix[y + 1][x]);
+                }
+
+                energyMatrix[y][x] = Math.sqrt(Math.pow(horizontalEnergy, 2) + Math.pow(verticalEnergy, 2));
             }
+        }
 
-            if (y == currHeight - 1) {
-                verticalEnergy = Math.abs(grayScaledMatrix[y][x] - grayScaledMatrix[y - 1][x]);
-            } else {
-                verticalEnergy = Math.abs(grayScaledMatrix[y][x] - grayScaledMatrix[y + 1][x]);
-            }
-
-            energyMatrix[y][x] = Math.sqrt(Math.pow(horizontalEnergy, 2) + Math.pow(verticalEnergy, 2));
-        });
-
-        return energyMatrix;
     }
 
     public BufferedImage carveImage(CarvingScheme carvingScheme) {
@@ -381,7 +392,11 @@ public class BasicSeamsCarver extends ImageProcessor {
         setForEachWidth(outWidth);
         setForEachHeight(outHeight);
 
-        forEach((y, x) -> ans.setRGB(x, y, workingImage.getRGB(coordinates[y][x].X, coordinates[y][x].Y)));
+        for(int y = 0; y < currHeight; y++) {
+            for (int x = 0; x < currWidth; x++) {
+                ans.setRGB(x, y, workingImage.getRGB(coordinates[y][x].X, coordinates[y][x].Y));
+            }
+        }
 
         return ans;
     }
@@ -404,22 +419,30 @@ public class BasicSeamsCarver extends ImageProcessor {
 
 
         BufferedImage currentImage = newEmptyInputSizedImage();
-        forEach((y,x) -> currentImage.setRGB(x,y,workingImage.getRGB(x, y)));
+        for(int y = 0; y < currHeight; y++) {
+            for (int x = 0; x < currWidth; x++) {
+                currentImage.setRGB(x, y, workingImage.getRGB(x, y));
+            }
+        }
 
         if(showVerticalSeams){
             for(int i=0; i< numberOfVerticalSeamsToCarve; i++){
+                currentMode = Mode.VERTICAL;
                 carveSeam();
                 Coordinate[] ans = findVerticalSeam();
-                colorSeam(ans, seamColorRGB, currentImage);
+                verticalSeams.add(ans);
+                compressIndexMatrixVertical(ans);
             }
         }else{
             for(int i=0; i<numberOfHorizontalSeamsToCarve; i++){
                 carveSeam();
                 Coordinate[] ans = findHorizontalSeam();
-                colorSeam(ans, seamColorRGB, currentImage);
+                horizontalSeams.add(ans);
+                compressIndexMatrixVertical(ans);
             }
         }
 
+        colorSeam(seamColorRGB, currentImage);
         return currentImage;
 
     }
@@ -463,10 +486,20 @@ public class BasicSeamsCarver extends ImageProcessor {
         currWidth--;
     }
 
-
-    private void colorSeam(Coordinate[] seamToColor, int seamColor, BufferedImage Image){
-        for(Coordinate coor : seamToColor){
-            Image.setRGB(coordinates[coor.Y][coor.X].X, coordinates[coor.Y][coor.X].Y, seamColor);
+    private void colorSeam(int seamColor, BufferedImage Image){
+        if(currentMode == Mode.VERTICAL){
+            for(Coordinate[] seam : verticalSeams) {
+                for (Coordinate coor : seam) {
+                    Image.setRGB(coordinates[coor.Y][coor.X].X, coordinates[coor.Y][coor.X].Y, seamColor);
+                }
+            }
+        }else{
+            for(Coordinate[] seam : horizontalSeams) {
+                for (Coordinate coor : seam) {
+                    Image.setRGB(coordinates[coor.Y][coor.X].X, coordinates[coor.Y][coor.X].Y, seamColor);
+                }
+            }
         }
+
     }
 }
