@@ -479,7 +479,7 @@ public class BasicSeamsCarver extends ImageProcessor {
 
     private void removeSingleHorizontalSeam() {
         carveSeam();
-        Coordinate[] seam = findVerticalSeam();
+        Coordinate[] seam = findHorizontalSeam();
         compressIndexMatrixHorizontal(seam);
     }
 
