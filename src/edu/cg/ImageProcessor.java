@@ -170,8 +170,8 @@ public class ImageProcessor extends FunctioalForEachLoops {
 			int currentY = (int)imgY;
 			int nextY = Math.min(currentY + 1, this.inHeight - 2);
 
-			float diffX = nextX - imgX;
-			float diffY = nextY - imgY;
+			float diffX = (float)nextX - imgX;
+			float diffY = (float)nextY - imgY;
 
 			Color c1 = new Color(workingImage.getRGB(currentX, currentY));
 			Color c2 = new Color(workingImage.getRGB(nextX, currentY));
@@ -190,9 +190,13 @@ public class ImageProcessor extends FunctioalForEachLoops {
 	}
 
 	private Color linearInterpolation(Color c1, Color c2, float diff) {
-		float r12 = (1 - diff) * (float) c1.getRed() + diff * (float)c2.getRed();
-		float g12 = (1 - diff) * (float)c1.getGreen() + diff * (float)c2.getGreen();
-		float b12 = (1 - diff) * (float)c1.getBlue() + diff * (float)c2.getBlue();
+		int r12 = (int)((1.0f - diff) * (float) c2.getRed() + diff * (float)c1.getRed());
+		int g12 = (int)((1.0f - diff) * (float)c2.getGreen() + diff * (float)c1.getGreen());
+		int b12 = (int)((1.0f - diff) * (float)c2.getBlue() + diff * (float)c1.getBlue());
+
+		r12 = Math.min(Math.max(r12, 0), 255);
+		g12 = Math.min(Math.max(g12, 0), 255);
+		b12 = Math.min(Math.max(b12, 0), 255);
 		return new Color(r12, g12, b12);
 	}
 
